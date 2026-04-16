@@ -1,0 +1,11 @@
+import { build } from "esbuild";
+
+await build({
+  entryPoints: ["src/index.ts"],
+  outfile: "dist/index.mjs",
+  bundle: true,
+  platform: "node",
+  format: "esm",
+  target: "node20",
+  sourcemap: true,
+});

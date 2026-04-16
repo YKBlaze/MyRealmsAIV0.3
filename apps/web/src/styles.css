@@ -1,0 +1,1424 @@
+:root {
+  color: #f3f1ea;
+  background:
+    radial-gradient(circle at top, rgba(181, 107, 55, 0.12), transparent 40%),
+    linear-gradient(180deg, #191611 0%, #0e0c09 100%);
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+}
+
+/* =============================================================================
+   APP SHELL — fixed-viewport, IDE-style 3-pane debug workspace
+   ============================================================================= */
+
+.app-shell {
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.topbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 18px;
+  border-bottom: 1px solid rgba(223, 200, 177, 0.12);
+  background: rgba(14, 12, 9, 0.7);
+  backdrop-filter: blur(10px);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-right: 18px;
+  border-right: 1px solid rgba(223, 200, 177, 0.12);
+}
+
+.brand-mark {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #e7c49f;
+  font-size: 15px;
+}
+
+.brand-version {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #c89a72;
+}
+
+.topbar-status {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.topbar-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 14px;
+  border-left: 1px solid rgba(223, 200, 177, 0.12);
+}
+
+.pane-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(223, 200, 177, 0.12);
+  color: #c4b8a6;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.pane-toggle:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(223, 200, 177, 0.24);
+  color: #f3f1ea;
+}
+
+.pane-toggle.active {
+  background: rgba(181, 107, 55, 0.18);
+  border-color: rgba(181, 107, 55, 0.5);
+  color: #f3d7be;
+}
+
+.pane-toggle-label {
+  font-weight: 600;
+}
+
+.pane-toggle-icon {
+  width: 14px;
+  height: 12px;
+  border: 1.5px solid currentColor;
+  border-radius: 2px;
+  position: relative;
+  opacity: 0.9;
+}
+
+.pane-toggle-icon-left::before,
+.pane-toggle-icon-right::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: currentColor;
+  opacity: 0.8;
+}
+
+.pane-toggle-icon-left::before {
+  left: 0;
+}
+
+.pane-toggle-icon-right::before {
+  right: 0;
+}
+
+.pane-toggle-reset {
+  font-size: 10.5px;
+  color: #8b8578;
+}
+
+/* Flatten the StatusPanel inside the topbar */
+.topbar-status .panel {
+  padding: 6px 10px;
+  background: transparent;
+  border: 0;
+  backdrop-filter: none;
+  border-radius: 0;
+}
+
+.topbar-status .status-panel {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.workspace {
+  --left-w: 400px;
+  --right-w: 440px;
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: var(--left-w) 6px minmax(0, 1fr) 6px var(--right-w);
+  min-height: 0;
+  background: rgba(223, 200, 177, 0.08);
+  transition: grid-template-columns 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.is-resizing {
+  cursor: col-resize !important;
+  user-select: none;
+}
+
+body.is-resizing .workspace {
+  transition: none;
+}
+
+/* Resize handles between panes */
+.resizer {
+  position: relative;
+  min-width: 0;
+  background: transparent;
+  cursor: col-resize;
+  touch-action: none;
+  transition: background 120ms ease;
+}
+
+.resizer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: rgba(223, 200, 177, 0.12);
+  transition: width 120ms ease, background 120ms ease;
+}
+
+.resizer:hover::before,
+body.is-resizing .resizer::before {
+  width: 3px;
+  background: rgba(181, 107, 55, 0.75);
+}
+
+.resizer.is-disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+.resizer.is-disabled::before {
+  background: rgba(223, 200, 177, 0.05);
+}
+
+/* Collapsed panes: hide content cleanly at width 0 */
+.pane.is-collapsed {
+  padding: 0;
+  border: 0;
+}
+
+.pane.is-collapsed > * {
+  visibility: hidden;
+}
+
+.pane {
+  min-height: 0;
+  min-width: 0;
+  background:
+    radial-gradient(circle at top, rgba(181, 107, 55, 0.06), transparent 60%),
+    #14110d;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pane-left,
+.pane-right {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px;
+  gap: 14px;
+  scrollbar-gutter: stable;
+}
+
+.pane-left > *,
+.pane-right > * {
+  flex: 0 0 auto;
+}
+
+.pane-center {
+  overflow: hidden;
+  gap: 0;
+}
+
+.pane-center-header {
+  flex: 0 0 auto;
+  padding: 12px 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pane-center > .transcript {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 12px 16px 0;
+  overflow-y: auto;
+}
+
+.pane-center-composer {
+  flex: 0 0 auto;
+  border-top: 1px solid rgba(223, 200, 177, 0.12);
+  padding: 12px 16px 14px;
+  background: rgba(14, 12, 9, 0.85);
+  backdrop-filter: blur(10px);
+  margin-top: 12px;
+}
+
+/* Thin, unobtrusive scrollbars inside panes */
+.pane::-webkit-scrollbar,
+.pane *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.pane::-webkit-scrollbar-thumb,
+.pane *::-webkit-scrollbar-thumb {
+  background: rgba(223, 200, 177, 0.16);
+  border-radius: 8px;
+}
+.pane::-webkit-scrollbar-thumb:hover,
+.pane *::-webkit-scrollbar-thumb:hover {
+  background: rgba(223, 200, 177, 0.28);
+}
+.pane::-webkit-scrollbar-track,
+.pane *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.panel {
+  border: 1px solid rgba(223, 200, 177, 0.18);
+  background: rgba(24, 20, 16, 0.82);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.status-panel,
+.combat-panel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.roster-panel,
+.debugger-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.roster-header,
+.debugger-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.roster-card,
+.debug-card {
+  border: 1px solid rgba(223, 200, 177, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.debug-card.error {
+  border-color: rgba(255, 122, 122, 0.35);
+}
+
+.debug-card pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.debug-card-title {
+  color: #e7c49f;
+  font-weight: 700;
+}
+
+.roster-appearance,
+.roster-origin,
+.debug-line {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.roster-origin {
+  color: #d2c7b8;
+}
+
+.roster-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.locality-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.locality-json {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.locality-saved-card {
+  gap: 12px;
+}
+
+.locality-saved-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.secondary-button {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f3f1ea;
+}
+
+details.roster-card summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: #e7c49f;
+}
+
+details.roster-card[open] summary {
+  margin-bottom: 12px;
+}
+
+.selector-block {
+  display: grid;
+  gap: 8px;
+}
+
+.selector-block-wide {
+  grid-column: 1 / -1;
+}
+
+.selector-block input,
+.selector-block select,
+.selector-block textarea,
+.composer textarea {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(223, 200, 177, 0.18);
+  background: #0f0d0b;
+  color: inherit;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.selector-block textarea {
+  resize: vertical;
+}
+
+.locality-tab-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tab-button {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f3f1ea;
+}
+
+.tab-button.active {
+  background: #b56b37;
+}
+
+.locality-generate-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.locality-action-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.locality-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.manual-role-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.manual-role-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.manual-role-option input {
+  width: auto;
+}
+
+.debugger-section {
+  display: grid;
+  gap: 10px;
+}
+
+.toggle-list {
+  display: grid;
+  gap: 10px;
+}
+
+.toggle-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.toggle-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.toggle-switch input {
+  margin: 0;
+}
+
+.debug-scroll {
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+}
+
+.debug-scroll > * {
+  flex: 0 0 auto;
+}
+
+.transcript {
+  min-height: 0;
+  min-width: 0;
+  scroll-behavior: smooth;
+}
+
+.composer {
+  width: 100%;
+}
+
+.message {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(223, 200, 177, 0.08);
+}
+
+.message:last-child {
+  border-bottom: 0;
+}
+
+.message.user .role {
+  color: #e0b07c;
+}
+
+.message.assistant .role {
+  color: #92b8ff;
+}
+
+.role {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 6px;
+}
+
+.message p,
+.empty {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.55;
+}
+
+.animated-text {
+  overflow-wrap: anywhere;
+}
+
+.animated-word {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(0.25em);
+  filter: blur(2px);
+  animation: animated-word-write 180ms ease-out var(--word-delay, 0ms) both;
+}
+
+@keyframes animated-word-write {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.composer textarea {
+  resize: vertical;
+  min-height: 64px;
+  max-height: 180px;
+  display: block;
+  line-height: 1.5;
+  caret-color: #f3f1ea;
+  outline: none;
+}
+
+.pane-center-composer .composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pane-center-composer .composer-row {
+  margin-top: 0;
+}
+
+.composer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 18px;
+  background: #b56b37;
+  color: #fff7f0;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.error {
+  margin: 0;
+  color: #ff9f9f;
+}
+
+.composer-hint {
+  margin: 0;
+  color: #b9ac9a;
+  font-size: 13px;
+}
+
+code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+/* =============================================================================
+   ENGINE TRACE — Inline resolution summary
+   ============================================================================= */
+
+.engine-trace {
+  position: relative;
+  overflow: hidden;
+  margin: 8px 0 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(200, 154, 114, 0.08), rgba(146, 184, 255, 0.06));
+  border: 1px solid rgba(200, 154, 114, 0.2);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  font-family: "Fira Code", "Cascadia Code", "JetBrains Mono", monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  cursor: pointer;
+  transform-origin: top center;
+  animation: engine-trace-arrive 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.engine-trace::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(100deg, transparent 0%, rgba(255, 230, 190, 0.14) 42%, transparent 72%),
+    radial-gradient(circle at 20% 0%, rgba(200, 154, 114, 0.12), transparent 36%);
+  transform: translateX(-120%);
+  animation: engine-trace-sweep 900ms ease-out 120ms both;
+}
+
+.engine-trace:hover {
+  border-color: rgba(200, 154, 114, 0.4);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22), 0 0 28px rgba(200, 154, 114, 0.08);
+  transform: translateY(-1px);
+}
+
+.engine-trace.trace-counter {
+  margin-top: -4px;
+  background: linear-gradient(135deg, rgba(214, 96, 86, 0.1), rgba(80, 35, 35, 0.16));
+  border-color: rgba(214, 96, 86, 0.26);
+}
+
+.engine-trace.trace-counter::after {
+  background:
+    linear-gradient(100deg, transparent 0%, rgba(255, 155, 135, 0.13) 42%, transparent 72%),
+    radial-gradient(circle at 20% 0%, rgba(214, 96, 86, 0.14), transparent 36%);
+}
+
+.engine-trace.trace-counter:hover {
+  border-color: rgba(214, 96, 86, 0.46);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22), 0 0 28px rgba(214, 96, 86, 0.1);
+}
+
+.trace-label {
+  width: fit-content;
+  margin-bottom: 5px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--muted);
+  font-family: "Fira Code", "Cascadia Code", "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  animation: trace-token-write 220ms ease-out 80ms both;
+}
+
+.trace-counter .trace-label {
+  color: #f0b0a5;
+}
+
+.trace-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+  animation: trace-line-arrive 360ms ease-out 90ms both;
+}
+
+.trace-header > *,
+.trace-roll-line > *,
+.trace-effects > *,
+.trace-end-conditions > * {
+  opacity: 0;
+  transform: translateY(3px);
+  animation: trace-token-write 220ms ease-out both;
+}
+
+.trace-header > :nth-child(1),
+.trace-roll-line > :nth-child(1),
+.trace-effects > :nth-child(1),
+.trace-end-conditions > :nth-child(1) {
+  animation-delay: 120ms;
+}
+
+.trace-header > :nth-child(2),
+.trace-roll-line > :nth-child(2),
+.trace-effects > :nth-child(2),
+.trace-end-conditions > :nth-child(2) {
+  animation-delay: 180ms;
+}
+
+.trace-header > :nth-child(3),
+.trace-roll-line > :nth-child(3),
+.trace-effects > :nth-child(3),
+.trace-end-conditions > :nth-child(3) {
+  animation-delay: 240ms;
+}
+
+.trace-roll-line > :nth-child(n + 4),
+.trace-effects > :nth-child(n + 4),
+.trace-end-conditions > :nth-child(n + 4) {
+  animation-delay: 300ms;
+}
+
+.trace-operator {
+  color: #e7c49f;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.trace-actors {
+  color: #d2c7b8;
+}
+
+.trace-target {
+  color: #ff9f9f;
+}
+
+.trace-effort {
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #b9ac9a;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Roll line */
+.trace-roll-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+  animation: trace-line-arrive 360ms ease-out 160ms both;
+}
+
+.trace-die {
+  color: #f3f1ea;
+  font-weight: 600;
+}
+
+.trace-bonus {
+  color: #92b8ff;
+  cursor: help;
+}
+
+.trace-gamble {
+  color: #e0b07c;
+  font-style: italic;
+}
+
+.trace-equals {
+  color: #f3f1ea;
+  font-weight: 600;
+}
+
+.trace-vs {
+  color: #b9ac9a;
+}
+
+.trace-vs::before {
+  content: "vs ";
+  color: #7a7060;
+}
+
+.trace-grade {
+  padding: 1px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.grade-crit-success {
+  background: rgba(80, 200, 120, 0.18);
+  color: #50c878;
+  border: 1px solid rgba(80, 200, 120, 0.3);
+}
+
+.grade-success {
+  background: rgba(100, 180, 100, 0.14);
+  color: #7ec87e;
+  border: 1px solid rgba(100, 180, 100, 0.25);
+}
+
+.grade-partial {
+  background: rgba(224, 176, 124, 0.14);
+  color: #e0b07c;
+  border: 1px solid rgba(224, 176, 124, 0.25);
+}
+
+.grade-failure {
+  background: rgba(255, 130, 130, 0.12);
+  color: #ff9f9f;
+  border: 1px solid rgba(255, 130, 130, 0.2);
+}
+
+.grade-crit-failure {
+  background: rgba(255, 80, 80, 0.16);
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 80, 80, 0.3);
+}
+
+.trace-magnitude {
+  color: #b9ac9a;
+  font-size: 11.5px;
+}
+
+/* Effects row */
+.trace-effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+  animation: trace-line-arrive 360ms ease-out 230ms both;
+}
+
+.trace-delta,
+.trace-status-change {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+}
+
+.delta-neg {
+  background: rgba(255, 130, 130, 0.1);
+  color: #ff9f9f;
+}
+
+.delta-pos {
+  background: rgba(80, 200, 120, 0.1);
+  color: #50c878;
+}
+
+.trace-status-change {
+  background: rgba(146, 184, 255, 0.1);
+  color: #92b8ff;
+}
+
+/* End conditions */
+.trace-end-conditions {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  animation: trace-line-arrive 360ms ease-out 300ms both;
+}
+
+.trace-end-condition {
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.ec-defeat {
+  background: rgba(255, 80, 80, 0.16);
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 80, 80, 0.3);
+}
+
+.ec-victory {
+  background: rgba(80, 200, 120, 0.18);
+  color: #50c878;
+  border: 1px solid rgba(80, 200, 120, 0.3);
+}
+
+.ec-flee,
+.ec-withdrawn,
+.ec-resolved {
+  background: rgba(224, 176, 124, 0.14);
+  color: #e0b07c;
+  border: 1px solid rgba(224, 176, 124, 0.25);
+}
+
+/* Expanded detail panel */
+.trace-detail {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(223, 200, 177, 0.1);
+  display: grid;
+  gap: 3px;
+  transform-origin: top center;
+  animation: trace-detail-open 220ms ease-out both;
+}
+
+.trace-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: #b9ac9a;
+  font-size: 11.5px;
+}
+
+.trace-detail-row span:first-child {
+  color: #7a7060;
+}
+
+.trace-expand-hint {
+  margin-top: 4px;
+  font-size: 10px;
+  color: #5a5040;
+  text-align: right;
+  letter-spacing: 0.06em;
+  animation: trace-line-arrive 360ms ease-out 300ms both;
+}
+
+@keyframes engine-trace-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes engine-trace-sweep {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes trace-line-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes trace-token-write {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes trace-detail-open {
+  from {
+    opacity: 0;
+    transform: scaleY(0.96) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .engine-trace,
+  .engine-trace::after,
+  .trace-header,
+  .trace-roll-line,
+  .trace-effects,
+  .trace-end-conditions,
+  .trace-detail,
+  .trace-expand-hint,
+  .animated-word,
+  .trace-header > *,
+  .trace-roll-line > *,
+  .trace-effects > *,
+  .trace-end-conditions > * {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+
+  .engine-trace,
+  .engine-trace:hover {
+    transform: none;
+  }
+}
+
+/* =============================================================================
+   OVERFLOW CONTAINMENT — bulletproof. No child can break the shell.
+   ============================================================================= */
+
+/* Every descendant of a pane shrink-fits horizontally, so long unbreakable
+   strings (session ids, file paths, prompt blobs) can never force a pane wider.
+   NOTE: min-height intentionally NOT reset — letting it default to `auto`
+   ensures grid/flex items size to their content and don't collapse on top of
+   each other in scrollable lists. min-height: 0 is only applied where
+   intentional (e.g. the pane itself, .transcript, the center-scroll region). */
+.pane,
+.pane * {
+  min-width: 0;
+}
+
+/* Scrollable lists explicitly allow their items to be content-sized and keep
+   row gaps honest even when the parent is max-height + overflow. */
+.pane .debug-scroll,
+.pane .debug-scroll > * {
+  min-height: auto;
+}
+
+/* Text content word-breaks; long tokens wrap instead of shoving siblings off-screen */
+.pane p,
+.pane li,
+.pane span,
+.pane strong,
+.pane em,
+.pane label,
+.pane summary,
+.pane h1,
+.pane h2,
+.pane h3,
+.pane h4,
+.pane .debug-line,
+.pane .debug-card-title,
+.pane .roster-appearance,
+.pane .roster-origin {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Code / pre blocks contain their own overflow */
+.pane pre,
+.pane code {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Inputs and form elements cannot exceed their container */
+.pane input,
+.pane select,
+.pane textarea,
+.pane button {
+  max-width: 100%;
+}
+
+/* Action rows wrap before pushing a pane wider */
+.pane .composer-row,
+.pane .roster-header,
+.pane .debugger-header,
+.pane .locality-action-row,
+.pane .locality-generate-row,
+.pane .locality-tab-row,
+.pane .locality-saved-header {
+  max-width: 100%;
+}
+
+/* =============================================================================
+   PANE POLISH — distinct visual identity, no label truncation, tighter density
+   ============================================================================= */
+
+/* Subtle tint per pane so they read as separate surfaces */
+.pane-left {
+  background:
+    linear-gradient(180deg, rgba(181, 107, 55, 0.05), transparent 120px),
+    #14110d;
+}
+
+.pane-center {
+  background:
+    radial-gradient(ellipse at top, rgba(146, 184, 255, 0.04), transparent 50%),
+    #16130f;
+}
+
+.pane-right {
+  background:
+    linear-gradient(180deg, rgba(100, 160, 255, 0.04), transparent 120px),
+    #14110d;
+}
+
+/* Panels sit flatter inside the already-tinted pane; keep a crisp border */
+.pane .panel {
+  background: rgba(20, 17, 13, 0.6);
+  border: 1px solid rgba(223, 200, 177, 0.1);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02) inset;
+}
+
+.pane .panel:hover {
+  border-color: rgba(223, 200, 177, 0.16);
+}
+
+/* Cards within cards should be flatter still */
+.pane .roster-card,
+.pane .debug-card {
+  background: rgba(0, 0, 0, 0.22);
+  border-color: rgba(223, 200, 177, 0.08);
+}
+
+/* Side panes: collapse all multi-column internal grids to a single column.
+   The panes are narrow; truncated labels are useless. Stack them. */
+.pane-left .roster-grid,
+.pane-left .locality-summary-grid,
+.pane-left .locality-form-grid,
+.pane-left .manual-role-grid,
+.pane-left .status-panel,
+.pane-left .combat-panel,
+.pane-right .roster-grid,
+.pane-right .locality-summary-grid,
+.pane-right .locality-form-grid,
+.pane-right .manual-role-grid,
+.pane-right .status-panel,
+.pane-right .combat-panel {
+  grid-template-columns: 1fr;
+}
+
+/* Role checklist stays compact (2 cols) — short labels fit fine */
+.pane-left .manual-role-grid,
+.pane-right .manual-role-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Give pane sections a little more breathing room from each other */
+.pane-left > .panel + .panel,
+.pane-right > .panel + .panel {
+  margin-top: 2px;
+}
+
+/* Section header rows (roster / debugger) — tighten and uppercase-label them */
+.pane .roster-header,
+.pane .debugger-header {
+  padding-bottom: 10px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid rgba(223, 200, 177, 0.08);
+}
+
+.pane .roster-header strong,
+.pane .roster-header > :first-child,
+.pane .debugger-header strong,
+.pane .debugger-header > :first-child {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 11px;
+  color: #c89a72;
+}
+
+/* Tab buttons (Actors / Objects etc.) — pill-styled row instead of loose buttons */
+.pane .tab-button,
+.pane .locality-tab-row .tab-button {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(223, 200, 177, 0.1);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.pane .tab-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(223, 200, 177, 0.2);
+}
+
+.pane .tab-button.active {
+  background: #b56b37;
+  border-color: #b56b37;
+  color: #fff7f0;
+}
+
+/* =============================================================================
+   TOPBAR REFINEMENT — compress the status-panel into a real status strip
+   ============================================================================= */
+
+.topbar {
+  padding: 8px 18px;
+  min-height: 52px;
+}
+
+.brand-mark {
+  font-size: 14px;
+  letter-spacing: 0.1em;
+}
+
+/* Flatten StatusPanel's internal divs into a horizontal, label-over-value strip */
+.topbar-status .status-panel {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+}
+
+.topbar-status .status-panel > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 12.5px;
+}
+
+.topbar-status .status-panel strong {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 10.5px;
+  color: #c89a72;
+  flex: 0 0 auto;
+}
+
+.topbar-status .status-panel > div > div {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #d2c7b8;
+  font-family: "Fira Code", "Cascadia Code", "JetBrains Mono", monospace;
+  font-size: 11.5px;
+}
+
+/* Session-id row: input + Load button should stay inline and tight */
+.topbar-status .status-panel input {
+  flex: 1 1 220px;
+  min-width: 120px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  border-radius: 8px;
+  font-family: "Fira Code", "Cascadia Code", "JetBrains Mono", monospace;
+}
+
+.topbar-status .status-panel button {
+  padding: 6px 14px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+/* The inline input+button wrapper StatusPanel renders */
+.topbar-status .status-panel > div > div[style*="flex"] {
+  flex: 1 1 auto;
+  margin-top: 0 !important;
+}
+
+/* =============================================================================
+   COMPOSER POLISH
+   ============================================================================= */
+
+.pane-center-composer {
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.pane-center-composer .panel.composer {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  box-shadow: none;
+}
+
+.pane-center-composer .composer textarea {
+  background: rgba(10, 8, 6, 0.7);
+  border: 1px solid rgba(223, 200, 177, 0.16);
+  border-radius: 10px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pane-center-composer .composer textarea:focus {
+  border-color: rgba(181, 107, 55, 0.55);
+  box-shadow: 0 0 0 3px rgba(181, 107, 55, 0.12);
+}
+
+/* =============================================================================
+   TRANSCRIPT POLISH
+   ============================================================================= */
+
+.pane-center > .transcript {
+  background: rgba(14, 12, 9, 0.55);
+  border: 1px solid rgba(223, 200, 177, 0.08);
+  border-radius: 12px;
+  padding: 14px 18px;
+}
+
+.pane-center > .transcript .empty {
+  color: #7a7060;
+  font-style: italic;
+}
+
+/* Collapse right pane first, then left pane, as viewport shrinks. */
+@media (max-width: 1280px) {
+  .workspace {
+    /* Drop the right pane below the main row to give chat room to breathe */
+    grid-template-columns: var(--left-w) 6px minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .workspace > .resizer:nth-of-type(2) {
+    display: none;
+  }
+  .pane-right {
+    grid-column: 1 / -1;
+    max-height: 42vh;
+    border-top: 1px solid rgba(223, 200, 177, 0.12);
+  }
+}
+
+@media (max-width: 860px) {
+  body {
+    overflow: auto;
+  }
+  .app-shell {
+    height: auto;
+    min-height: 100vh;
+  }
+  .workspace {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto auto;
+  }
+  .workspace > .resizer {
+    display: none;
+  }
+  .pane-left,
+  .pane-center,
+  .pane-right {
+    max-height: none;
+  }
+  .pane-center {
+    min-height: 70vh;
+  }
+  .topbar-actions {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .status-panel,
+  .combat-panel,
+  .roster-grid,
+  .locality-summary-grid,
+  .locality-form-grid,
+  .manual-role-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .toggle-row {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+}

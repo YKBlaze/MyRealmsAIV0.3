@@ -1,0 +1,15 @@
+{
+  "name": "myrealmsai-v0-3",
+  "private": true,
+  "version": "0.3.0",
+  "scripts": {
+    "build": "pnpm --filter @myrealmsai-v0-3/api run build && pnpm --filter @myrealmsai-v0-3/web run build",
+    "typecheck": "pnpm --filter @myrealmsai-v0-3/api run typecheck && pnpm --filter @myrealmsai-v0-3/web run typecheck",
+    "dev:api": "pnpm --dir apps/api run dev",
+    "dev:web": "pnpm --dir apps/web run dev"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "typescript": "~5.9.2"
+  }
+}
