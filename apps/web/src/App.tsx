@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ChatComposer } from "./features/chat/ChatComposer";
 import { TranscriptPanel } from "./features/chat/TranscriptPanel";
 import { DebugInspector } from "./features/debug/DebugInspector";
-import { SessionCombatPanel } from "./features/session/SessionCombatPanel";
+import { SessionCombatPanel, type DirectorIntent } from "./features/session/SessionCombatPanel";
 import { SessionSetupPanel } from "./features/session/SessionSetupPanel";
 import { SessionStatusPanel } from "./features/session/SessionStatusPanel";
 
@@ -18,18 +18,10 @@ const MAX_PANE = 720;
 const DEFAULT_LEFT = 400;
 const DEFAULT_RIGHT = 440;
 
-const placeholderMessages = [
-  {
-    role: "assistant",
-    content:
-      "MyRealmsAI V0.3 is a shell only. The workspace, panes, and composition surface are intact, but there is no engine or narrator connected yet.",
-  },
-  {
-    role: "assistant",
-    content:
-      "Use this fork as a clean rebuild surface for UI and app flow before reconnecting any runtime or model logic.",
-  },
-] as const;
+export type TranscriptMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
 
 function readNumber(key: string, fallback: number) {
   try {
@@ -50,7 +42,15 @@ function readBool(key: string) {
 
 export default function App() {
   const transcriptRef = useRef<HTMLElement | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<TranscriptMessage[]>([]);
+  const [latestIntent, setLatestIntent] = useState<DirectorIntent | null>(null);
+  const [intentStatus, setIntentStatus] = useState("No action classified yet.");
+  const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [isStartingSession, setIsStartingSession] = useState(false);
+  const [startSessionError, setStartSessionError] = useState<string | null>(null);
   const [leftWidth, setLeftWidth] = useState(() => readNumber(LS.leftWidth, DEFAULT_LEFT));
   const [rightWidth, setRightWidth] = useState(() => readNumber(LS.rightWidth, DEFAULT_RIGHT));
   const [leftCollapsed, setLeftCollapsed] = useState(() => readBool(LS.leftCollapsed));
@@ -69,7 +69,7 @@ export default function App() {
     const element = transcriptRef.current;
     if (!element) return;
     element.scrollTop = element.scrollHeight;
-  }, []);
+  }, [messages]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -120,6 +120,102 @@ export default function App() {
     setRightCollapsed(false);
   };
 
+  const startSession = useCallback(async () => {
+    setIsStartingSession(true);
+    setStartSessionError(null);
+
+    try {
+      const response = await fetch("/api/session", {
+        method: "POST",
+      });
+      const payload = (await response.json()) as
+        | {
+            ok: true;
+            session: {
+              sessionId: string;
+            };
+          }
+        | {
+            ok: false;
+            error: string;
+          };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.ok ? "Failed to start session." : payload.error);
+      }
+
+      setSessionId(payload.session.sessionId);
+      setMessages([]);
+      setInput("");
+      setSendError(null);
+      setLatestIntent(null);
+      setIntentStatus("No action classified yet.");
+    } catch (error) {
+      setStartSessionError(error instanceof Error ? error.message : "Failed to start session.");
+    } finally {
+      setIsStartingSession(false);
+    }
+  }, []);
+
+  const submitMessage = useCallback(async () => {
+    const content = input.trim();
+
+    if (content.length === 0 || isSending || sessionId === null) {
+      return;
+    }
+
+    const userMessage: TranscriptMessage = {
+      role: "user",
+      content,
+    };
+
+    const nextMessages = [...messages, userMessage];
+
+    setMessages(nextMessages);
+    setInput("");
+    setSendError(null);
+    setIntentStatus("Reading player intent...");
+    setIsSending(true);
+
+    try {
+      const response = await fetch("/api/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sessionId,
+          messages: nextMessages,
+        }),
+      });
+
+      const payload = (await response.json()) as
+        | {
+            ok: true;
+            turn: number;
+            intent: DirectorIntent;
+            message: TranscriptMessage;
+          }
+        | {
+            ok: false;
+            error: string;
+          };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.ok ? "Unknown chat error." : payload.error);
+      }
+
+      setLatestIntent(payload.intent);
+      setIntentStatus(`Intent classified for turn ${payload.turn}.`);
+      setMessages((currentMessages) => [...currentMessages, payload.message]);
+    } catch (error) {
+      setSendError(error instanceof Error ? error.message : "Unknown chat error.");
+      setIntentStatus("Intent unavailable.");
+    } finally {
+      setIsSending(false);
+    }
+  }, [input, isSending, messages, sessionId]);
+
   const workspaceStyle = {
     ["--left-w" as any]: `${leftCollapsed ? 0 : leftWidth}px`,
     ["--right-w" as any]: `${rightCollapsed ? 0 : rightWidth}px`,
@@ -133,7 +229,7 @@ export default function App() {
           <span className="brand-version">V0.3</span>
         </div>
         <div className="topbar-status">
-          <SessionStatusPanel />
+          <SessionStatusPanel sessionId={sessionId} />
         </div>
         <div className="topbar-actions" role="toolbar" aria-label="Layout controls">
           <button
@@ -164,7 +260,12 @@ export default function App() {
 
       <div className="workspace" style={workspaceStyle}>
         <aside className={`pane pane-left ${leftCollapsed ? "is-collapsed" : ""}`} aria-hidden={leftCollapsed}>
-          <SessionSetupPanel />
+          <SessionSetupPanel
+            sessionId={sessionId}
+            isStartingSession={isStartingSession}
+            startSessionError={startSessionError}
+            onStartSession={startSession}
+          />
         </aside>
 
         <div
@@ -178,11 +279,18 @@ export default function App() {
 
         <section className="pane pane-center">
           <div className="pane-center-header">
-            <SessionCombatPanel />
+            <SessionCombatPanel intent={latestIntent} intentStatus={intentStatus} />
           </div>
-          <TranscriptPanel messages={placeholderMessages} transcriptRef={transcriptRef} />
+          <TranscriptPanel messages={messages} transcriptRef={transcriptRef} />
           <div className="pane-center-composer">
-            <ChatComposer input={input} setInput={setInput} />
+            <ChatComposer
+              input={input}
+              setInput={setInput}
+              onSubmit={submitMessage}
+              isSending={isSending}
+              error={sendError}
+              sessionId={sessionId}
+            />
           </div>
         </section>
 

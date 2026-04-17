@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from "express";
 
-export const metaRouter = Router();
+export const metaRouter: Router = Router();
 
 metaRouter.get("/", (_req: Request, res: Response) => {
   res.json({

@@ -1,9 +1,5 @@
 import type { RefObject } from "react";
-
-type TranscriptMessage = {
-  role: string;
-  content: string;
-};
+import type { TranscriptMessage } from "../../App";
 
 type TranscriptPanelProps = {
   messages: readonly TranscriptMessage[];
@@ -13,6 +9,7 @@ type TranscriptPanelProps = {
 export function TranscriptPanel({ messages, transcriptRef }: TranscriptPanelProps) {
   return (
     <section className="transcript panel" ref={transcriptRef}>
+      {messages.length === 0 ? <p className="empty" /> : null}
       {messages.map((message, index) => (
         <article key={`${message.role}-${index}`} className={`message ${message.role}`}>
           <span className="role">{message.role}</span>

@@ -1,4 +1,27 @@
-export function SessionCombatPanel() {
+export type DirectorIntentAction = {
+  type: "move" | "observe" | "interact" | "social" | "combat" | "use";
+  verb: string;
+  targetHint: string | null;
+};
+
+export type DirectorIntent = {
+  primaryAction: DirectorIntentAction;
+  secondaryAction: DirectorIntentAction | null;
+};
+
+type SessionCombatPanelProps = {
+  intent: DirectorIntent | null;
+  intentStatus: string;
+};
+
+export function SessionCombatPanel({ intent, intentStatus }: SessionCombatPanelProps) {
+  const intentLabel =
+    intent === null
+      ? intentStatus
+      : intent.secondaryAction === null
+        ? formatIntentAction(intent.primaryAction)
+        : `${formatIntentAction(intent.primaryAction)} -> ${formatIntentAction(intent.secondaryAction)}`;
+
   return (
     <section className="panel combat-panel">
       <div>
@@ -15,8 +38,12 @@ export function SessionCombatPanel() {
       </div>
       <div>
         <strong>Intent</strong>
-        <div>Pure UI scaffolding</div>
+        <div>{intentLabel}</div>
       </div>
     </section>
   );
+}
+
+function formatIntentAction(action: DirectorIntentAction): string {
+  return action.targetHint === null ? action.type : `${action.type} (${action.targetHint})`;
 }

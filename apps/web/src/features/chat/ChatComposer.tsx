@@ -1,20 +1,38 @@
 type ChatComposerProps = {
   input: string;
   setInput: (value: string) => void;
+  onSubmit: () => void;
+  isSending: boolean;
+  error: string | null;
+  sessionId: string | null;
 };
 
-export function ChatComposer({ input, setInput }: ChatComposerProps) {
+export function ChatComposer({ input, setInput, onSubmit, isSending, error, sessionId }: ChatComposerProps) {
+  const hint =
+    error ??
+    (sessionId === null
+      ? "Start a session from Setup first."
+      : isSending
+        ? "Waiting for model response..."
+        : "Enter sends. Shift+Enter adds a new line.");
+
   return (
     <section className="panel composer">
       <textarea
         value={input}
         onChange={(event) => setInput(event.target.value)}
-        placeholder="Type into the shell. Submission is intentionally disconnected in V0.3."
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            onSubmit();
+          }
+        }}
+        placeholder="Write your next action."
       />
       <div className="composer-row">
-        <p className="composer-hint">This is a UI-only staging surface. No session logic is attached yet.</p>
-        <button type="button" disabled>
-          Send (Disconnected)
+        <p className="composer-hint">{hint}</p>
+        <button type="button" disabled={sessionId === null || isSending || input.trim().length === 0} onClick={onSubmit}>
+          {isSending ? "Sending..." : "Send"}
         </button>
       </div>
     </section>

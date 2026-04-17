@@ -1,5 +1,7 @@
 import cors from "cors";
 import express, { type Request, type Response } from "express";
+import { directorRouter } from "./routes/director";
+import { engineRouter } from "./routes/engine";
 import { messagesRouter } from "./routes/messages";
 import { metaRouter } from "./routes/meta";
 import { sessionRouter } from "./routes/session";
@@ -16,5 +18,7 @@ app.get("/api/health", (_req: Request, res: Response) => {
 app.use("/api/meta", metaRouter);
 app.use("/api/session", sessionRouter);
 app.use("/api/messages", messagesRouter);
+app.use("/api/engine", engineRouter);
+app.use("/api/director", directorRouter);
 
 export default app;
